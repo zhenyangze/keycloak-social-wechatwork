@@ -165,19 +165,24 @@ public class WechatWorkIdentityProvider extends AbstractOAuth2IdentityProvider<W
     @Override
     protected BrokeredIdentityContext extractIdentityFromProfile(EventBuilder event, JsonNode profile) {
         logger.info(profile.toString());
+        String userId = getJsonProperty(profile, "userid");
         // profile: see https://work.weixin.qq.com/api/doc#90000/90135/90196
-        BrokeredIdentityContext identity = new BrokeredIdentityContext(
-                (getJsonProperty(profile, "userid")));
+        BrokeredIdentityContext identity = new BrokeredIdentityContext(userId);
 
-        identity.setUsername(getJsonProperty(profile, "userid").toLowerCase());
-        identity.setBrokerUserId(getJsonProperty(profile, "userid").toLowerCase());
-        identity.setModelUsername(getJsonProperty(profile, "userid").toLowerCase());
+        identity.setUsername(userId.toLowerCase());
+        identity.setBrokerUserId(userId.toLowerCase());
+        identity.setModelUsername(userId.toLowerCase());
 
         // 邮箱为空
-        identity.setFirstName(getJsonProperty(profile, "email").split("@")[0].toLowerCase());
-        //identity.setFirstName(getJsonProperty(profile, "name"));
-        identity.setLastName(getJsonProperty(profile, "name"));
-        identity.setEmail(getJsonProperty(profile, "email").toLowerCase());
+        String email = getJsonProperty(profile, "email");
+        if (email.isEmpty()) {
+            email = userId.toLowerCase() + "_weixin@haochezhu.club";
+        }
+        String name = getJsonProperty(profile, "name");
+        identity.setFirstName(email.split("@")[0].toLowerCase());
+        //identity.setFirstName(name);
+        identity.setLastName(name);
+        identity.setEmail(email.toLowerCase());
         // 手机号码，第三方仅通讯录应用可获取
         identity.setUserAttribute(PROFILE_MOBILE, getJsonProperty(profile, "mobile"));
         // 性别。0表示未定义，1表示男性，2表示女性
