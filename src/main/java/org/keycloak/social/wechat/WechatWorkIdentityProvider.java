@@ -58,6 +58,7 @@ public class WechatWorkIdentityProvider extends AbstractOAuth2IdentityProvider<W
     public static final String DEFAULT_SCOPE = "snsapi_base";
     public static final String DEFAULT_RESPONSE_TYPE = "code";
     public static final String WEIXIN_REDIRECT_FRAGMENT = "wechat_redirect";
+    public static final String OAUTH2_PARAMETER_REDIRECT = "connect_redirect";
 
     public static final String PROFILE_URL = "https://qyapi.weixin.qq.com/cgi-bin/user/getuserinfo";
     public static final String PROFILE_DETAIL_URL = "https://qyapi.weixin.qq.com/cgi-bin/user/get";
@@ -213,6 +214,7 @@ public class WechatWorkIdentityProvider extends AbstractOAuth2IdentityProvider<W
                     .param(ACCESS_TOKEN_KEY, accessToken)
                     .param("code", authorizationCode)
                     .asJson();
+            // {"UserId":"","DeviceId":"","errcode":0,"errmsg":"ok"}
             logger.info("profile first " + profile.toString());
             long errcode = profile.get("errcode").asInt();
             if (errcode == 42001 || errcode == 40014) {
@@ -271,6 +273,7 @@ public class WechatWorkIdentityProvider extends AbstractOAuth2IdentityProvider<W
                     .queryParam(OAUTH2_PARAMETER_RESPONSE_TYPE, DEFAULT_RESPONSE_TYPE)
                     .queryParam(OAUTH2_PARAMETER_SCOPE, getConfig().getDefaultScope())
                     .queryParam(OAUTH2_PARAMETER_STATE, request.getState().getEncoded())
+                    .queryParam(OAUTH2_PARAMETER_REDIRECT, "1")
             ;
             uriBuilder.fragment(WEIXIN_REDIRECT_FRAGMENT);
         } else {
