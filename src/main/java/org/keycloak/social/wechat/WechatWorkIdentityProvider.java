@@ -213,7 +213,6 @@ public class WechatWorkIdentityProvider extends AbstractOAuth2IdentityProvider<W
                     .param(ACCESS_TOKEN_KEY, accessToken)
                     .param("code", authorizationCode)
                     .asJson();
-            // {"UserId":"ZhongXun","DeviceId":"10000556333395ZN","errcode":0,"errmsg":"ok"}
             logger.info("profile first " + profile.toString());
             long errcode = profile.get("errcode").asInt();
             if (errcode == 42001 || errcode == 40014) {
