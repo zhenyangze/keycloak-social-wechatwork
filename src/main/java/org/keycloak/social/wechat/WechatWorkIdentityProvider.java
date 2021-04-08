@@ -17,6 +17,7 @@
 package org.keycloak.social.wechat;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.infinispan.Cache;
 import org.infinispan.configuration.cache.ConfigurationBuilder;
 import org.infinispan.manager.DefaultCacheManager;
@@ -74,6 +75,7 @@ public class WechatWorkIdentityProvider extends AbstractOAuth2IdentityProvider<W
     public static final String PROFILE_STATUS = "status";
     public static final String PROFILE_ENABLE = "enable";
     public static final String PROFILE_USERID = "userid";
+    public static final String PROFILE_AVATAR = "avatar";
 
     private String ACCESS_TOKEN_KEY = "access_token";
     private String ACCESS_TOKEN_CACHE_KEY = "wechat_work_sso_access_token";
@@ -194,6 +196,8 @@ public class WechatWorkIdentityProvider extends AbstractOAuth2IdentityProvider<W
         // 成员启用状态。1表示启用的成员，0表示被禁用。注意，服务商调用接口不会返回此字段
         identity.setUserAttribute(PROFILE_ENABLE, getJsonProperty(profile, "enable"));
         identity.setUserAttribute(PROFILE_USERID, getJsonProperty(profile, "userid"));
+        //用户头像
+        identity.setUserAttribute(PROFILE_AVATAR, getJsonProperty(profile, "avatar"));
 
         identity.setIdpConfig(getConfig());
         identity.setIdp(this);
@@ -202,6 +206,7 @@ public class WechatWorkIdentityProvider extends AbstractOAuth2IdentityProvider<W
         return identity;
     }
 
+    private static final ObjectMapper mapper = new ObjectMapper();
     public BrokeredIdentityContext getFederatedIdentity(String authorizationCode) {
         String accessToken = get_access_token();
         if (accessToken == null) {
@@ -210,34 +215,49 @@ public class WechatWorkIdentityProvider extends AbstractOAuth2IdentityProvider<W
         BrokeredIdentityContext context = null;
         try {
             JsonNode profile;
-            profile = SimpleHttp.doGet(PROFILE_URL, session)
-                    .param(ACCESS_TOKEN_KEY, accessToken)
-                    .param("code", authorizationCode)
-                    .asJson();
-            // {"UserId":"","DeviceId":"","errcode":0,"errmsg":"ok"}
-            logger.info("profile first " + profile.toString());
-            long errcode = profile.get("errcode").asInt();
-            if (errcode == 42001 || errcode == 40014) {
-                accessToken = reset_access_token();
+            // 添加缓存记录，如果code重复使用，则直接返回用户信息
+            String authorizationCodeCacheKey = "wechat_ss_code_" + authorizationCode;
+            logger.info("authorizationCodeCacheKey:" + authorizationCodeCacheKey);
+            String profileString = sso_cache.get(authorizationCodeCacheKey);
+            if (profileString != null && profileString.length() > 5) {
+                logger.info("load user info from cache:" + profileString);
+                profile = mapper.readTree(profileString);
+            } else {
                 profile = SimpleHttp.doGet(PROFILE_URL, session)
                         .param(ACCESS_TOKEN_KEY, accessToken)
                         .param("code", authorizationCode)
                         .asJson();
-                logger.info("profile retried " + profile.toString());
+
+                logger.info("profile first " + profile.toString());
+                long errcode = profile.get("errcode").asInt();
+                if (errcode == 42001 || errcode == 40014) {
+                    accessToken = reset_access_token();
+                    profile = SimpleHttp.doGet(PROFILE_URL, session)
+                            .param(ACCESS_TOKEN_KEY, accessToken)
+                            .param("code", authorizationCode)
+                            .asJson();
+                    logger.info("profile retried " + profile.toString());
+                }
+                if (errcode != 0) {
+                    throw new IdentityBrokerException("get user info failed, please retry");
+                }
+                // 添加缓存
+                long times = 300;
+                sso_cache.put(authorizationCodeCacheKey, profile.toString(),times, TimeUnit.SECONDS);
             }
-            if (errcode != 0) {
-                throw new IdentityBrokerException("get user info failed, please retry");
-            }
+
             profile = SimpleHttp.doGet(PROFILE_DETAIL_URL, session)
                     .param(ACCESS_TOKEN_KEY, accessToken)
                     .param("userid", getJsonProperty(profile, "UserId"))
                     .asJson();
+
             logger.info("get userInfo =" + profile.toString());
             context = extractIdentityFromProfile(null, profile);
         } catch (Exception e) {
             logger.error(e);
             e.printStackTrace(System.out);
         }
+        logger.info("accessToken:" + accessToken);
         context.getContextData().put(FEDERATED_ACCESS_TOKEN, accessToken);
         return context;
     }
@@ -358,7 +378,9 @@ public class WechatWorkIdentityProvider extends AbstractOAuth2IdentityProvider<W
         user.setSingleAttribute(PROFILE_STATUS, context.getUserAttribute(PROFILE_STATUS));
         user.setSingleAttribute(PROFILE_ENABLE, context.getUserAttribute(PROFILE_ENABLE));
         user.setSingleAttribute(PROFILE_USERID, context.getUserAttribute(PROFILE_USERID));
+        user.setSingleAttribute(PROFILE_AVATAR, context.getUserAttribute(PROFILE_AVATAR));
 
+        user.setEnabled(context.getUserAttribute(PROFILE_ENABLE) == "1");
         user.setUsername(context.getUsername());
         user.setFirstName(context.getFirstName());
         user.setLastName(context.getLastName());
@@ -369,10 +391,11 @@ public class WechatWorkIdentityProvider extends AbstractOAuth2IdentityProvider<W
     public String getJsonProperty(JsonNode jsonNode, String name) {
         if (jsonNode.has(name) && !jsonNode.get(name).isNull()) {
             String s = jsonNode.get(name).asText();
-            if (s != null && !s.isEmpty())
+            if (s != null && !s.isEmpty()) {
                 return s;
-            else
+            } else {
                 return "";
+            }
         }
 
         return "";

@@ -17,6 +17,7 @@ public class WechatWorkUserAttributeMapper extends AbstractJsonUserAttributeMapp
     private static final String PROFILE_GENDER = WechatWorkIdentityProvider.PROFILE_GENDER;
     private static final String PROFILE_STATUS = WechatWorkIdentityProvider.PROFILE_STATUS;
     private static final String PROFILE_ENABLE = WechatWorkIdentityProvider.PROFILE_ENABLE;
+    private static final String PROFILE_AVATAR = WechatWorkIdentityProvider.PROFILE_AVATAR;
     private static final String[] cp = new String[] { WechatWorkIdentityProviderFactory.PROVIDER_ID };
 
     @Override
@@ -35,5 +36,6 @@ public class WechatWorkUserAttributeMapper extends AbstractJsonUserAttributeMapp
         user.setSingleAttribute(PROFILE_GENDER, context.getUserAttribute(PROFILE_GENDER));
         user.setSingleAttribute(PROFILE_STATUS, context.getUserAttribute(PROFILE_STATUS));
         user.setSingleAttribute(PROFILE_ENABLE, context.getUserAttribute(PROFILE_ENABLE));
+        user.setSingleAttribute(PROFILE_AVATAR, context.getUserAttribute(PROFILE_AVATAR));
     }
 }
