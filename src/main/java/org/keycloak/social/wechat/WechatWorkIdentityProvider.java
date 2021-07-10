@@ -78,6 +78,8 @@ public class WechatWorkIdentityProvider extends AbstractOAuth2IdentityProvider<W
     public static final String PROFILE_ENABLE = "enable";
     public static final String PROFILE_USERID = "userid";
     public static final String PROFILE_AVATAR = "avatar";
+    public static final String PROFILE_ADDRESS = "address";
+    public static final String PROFILE_QR_CODE = "qr_code";
 
     private String ACCESS_TOKEN_KEY = "access_token";
     private String ACCESS_TOKEN_CACHE_KEY = "wechat_work_sso_access_token";
@@ -212,6 +214,10 @@ public class WechatWorkIdentityProvider extends AbstractOAuth2IdentityProvider<W
         identity.setUserAttribute(PROFILE_USERID, getJsonProperty(profile, "userid"));
         //用户头像
         identity.setUserAttribute(PROFILE_AVATAR, getJsonProperty(profile, "avatar"));
+        //qr_code 
+        identity.setUserAttribute(PROFILE_QR_CODE, getJsonProperty(profile, "qr_code"));
+        // address
+        identity.setUserAttribute(PROFILE_ADDRESS, getJsonProperty(profile, "address"));
 
         identity.setIdpConfig(getConfig());
         identity.setIdp(this);
@@ -394,6 +400,8 @@ public class WechatWorkIdentityProvider extends AbstractOAuth2IdentityProvider<W
         user.setSingleAttribute(PROFILE_ENABLE, context.getUserAttribute(PROFILE_ENABLE));
         user.setSingleAttribute(PROFILE_USERID, context.getUserAttribute(PROFILE_USERID));
         user.setSingleAttribute(PROFILE_AVATAR, context.getUserAttribute(PROFILE_AVATAR));
+        user.setSingleAttribute(PROFILE_QR_CODE, context.getUserAttribute(PROFILE_QR_CODE));
+        user.setSingleAttribute(PROFILE_ADDRESS, context.getUserAttribute(PROFILE_ADDRESS));
 
         user.setEnabled(context.getUserAttribute(PROFILE_ENABLE) == "1");
         user.setUsername(context.getUsername());
