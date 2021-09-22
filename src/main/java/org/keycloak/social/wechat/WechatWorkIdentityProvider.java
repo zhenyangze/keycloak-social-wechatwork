@@ -195,7 +195,7 @@ public class WechatWorkIdentityProvider extends AbstractOAuth2IdentityProvider<W
         // 邮箱为空
         String email = getJsonProperty(profile, "email");
         if (email.isEmpty()) {
-            email = userId.toLowerCase() + "_weixin@haochezhu.club";
+            email = userId.toLowerCase() + "_weixin@demo.com";
         }
         String name = getJsonProperty(profile, "name");
         identity.setFirstName(email.split("@")[0].toLowerCase());
